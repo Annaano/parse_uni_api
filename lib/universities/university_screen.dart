@@ -18,6 +18,7 @@ class UniversityListFromAPI extends StatefulWidget {
 }
 
 class _UniversityListFromAPIState extends State<UniversityListFromAPI> {
+  bool _showingDialog = false;
   @override
   void initState() {
     context.read<ApiCubit>().fetchUniversities(widget.countryName);
@@ -29,7 +30,10 @@ class _UniversityListFromAPIState extends State<UniversityListFromAPI> {
     if (mounted) super.setState(fn);
   }
 
-  showDialogBox() => showCupertinoDialog<String>(
+  void showDialogBox() {
+    if (!_showingDialog) {
+      _showingDialog = true;
+      showCupertinoDialog<String>(
         context: context,
         builder: (BuildContext context) => CupertinoAlertDialog(
           title: const Text('No Internet Connection'),
@@ -39,12 +43,18 @@ class _UniversityListFromAPIState extends State<UniversityListFromAPI> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).popUntil((route) => route.isFirst);
+                _showingDialog = false;
               },
               child: const Text('OK'),
             ),
           ],
         ),
-      );
+      ).then((value) {
+        _showingDialog = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,19 +65,28 @@ class _UniversityListFromAPIState extends State<UniversityListFromAPI> {
           maxLines: 3,
         ),
       ),
-      body: BlocBuilder<ApiCubit, ApiState>(builder: (context, state) {
-        if (state.internetConnection == false && !state.isLoading) {
-          return const SizedBox();
-        } else if (state.universities.isEmpty || state.isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        return ListView.builder(
-            itemCount: state.universities.length,
-            itemBuilder: (context, index) {
-              return getUniversitiesListPage(state.universities[index]);
-            });
-      }),
+      body: BlocListener<ApiCubit, ApiState>(
+        listener: (context, state) {
+          if (!state.internetConnection) {
+            showDialogBox();
+          }
+        },
+        child: BlocBuilder<ApiCubit, ApiState>(
+          builder: (context, state) {
+            if (state.universities.isEmpty || state.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (!state.internetConnection) {
+              showDialogBox();
+            }
+            return ListView.builder(
+              itemCount: state.universities.length,
+              itemBuilder: (context, index) {
+                return getUniversitiesListPage(state.universities[index]);
+              },
+            );
+          },
+        ),
+      ),
     );
   }
 

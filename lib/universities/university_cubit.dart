@@ -5,7 +5,7 @@ import 'university_state.dart';
 import 'package:http/http.dart' as http;
 
 class ApiCubit extends Cubit<ApiState> {
-  ApiCubit() : super(const ApiState());
+  ApiCubit() : super(ApiState());
 
   fetchUniversities(String countryName) async {
     try {
